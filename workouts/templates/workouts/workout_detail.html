@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ workout.title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="{% if workout.completed %}done{% endif %}">{{ workout.title }}</h1>
+
+    <p class="meta">Тривалість: {{ workout.duration_min }} хв</p>
+    <p class="meta">Дата: {{ workout.date }}</p>
+
+    <p style="margin: 10px 0 0;">
+        {% if workout.completed %}
+        <span class="pill pill-done">Виконано</span>
+        {% else %}
+        <span class="pill pill-open">Не виконано</span>
+        {% endif %}
+    </p>
+
+    {% if workout.exercise_set.all %}
+    <h3 style="margin-top: 2rem;">Вправи</h3>
+    <ul class="exercise-list">
+        {% for exercise in workout.exercise_set.all %}
+        <li>
+            <strong>{{ exercise.name }}</strong>:
+            {{ exercise.sets }} підх. × {{ exercise.repetitions }} повт.
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</div>
+
+<div style="margin-top: 18px; display: flex; gap: 0.5rem;">
+    <a href="{% url 'workout_list' %}" class="btn btn-secondary">← Назад</a>
+    {% if not workout.completed %}
+    <a href="{% url 'workout_edit' workout.pk %}" class="btn btn-secondary">Редагувати</a>
+    <a href="{% url 'workout_add_exercises' workout.pk %}"
+       class="btn btn-success">Вправи</a>
+    {% endif %}
+</div>
+{% endblock %}
