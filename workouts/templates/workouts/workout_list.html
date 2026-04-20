@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Список тренувань{% endblock %}
+
+{% block content %}
+<h1>Мої тренування</h1>
+
+<div style="margin-bottom: 1.5rem;">
+    <a class="btn btn-success" href="{% url 'workout_create' %}">+ Нове
+        тренування</a>
+</div>
+
+{% if workouts %}
+<ul class="list">
+    {% for workout in workouts %}
+    <li class="{% if workout.completed %}workout-done{% endif %}">
+        <div class="item-main">
+            <a href="{% url 'workout_detail' workout.pk %}"
+               class="title {% if workout.completed %}done{% endif %}">
+                {{ workout.title }}
+            </a>
+            <span class="meta">{{ workout.date }} · {{ workout.duration_min }} хв</span>
+        </div>
+        <div class="actions">
+            {% if not workout.completed %}
+            <a class="btn btn-success"
+               href="{% url 'workout_complete' workout.pk %}">Виконано</a>
+            <a class="btn btn-secondary"
+               href="{% url 'workout_edit' workout.pk %}">Ред.</a>
+            {% endif %}
+            <a class="btn btn-danger"
+               href="{% url 'workout_delete' workout.pk %}">Видалити</a>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="empty">СПИСОК ТРЕНУВАНЬ ПОРОЖНІЙ</p>
+{% endif %}
+{% endblock %}
