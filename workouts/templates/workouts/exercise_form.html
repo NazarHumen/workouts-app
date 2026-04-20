@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block title %}Додати вправи до: {{ workout.title }}{% endblock %}
+
+{% block content %}
+<h1>Вправи для тренування {{ workout.title }}</h1>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="section-card">
+        <h2 class="section-title">Список вправ</h2>
+        {{ formset.management_form }}
+
+        {% if formset.non_form_errors %}
+        <div style="color: var(--danger-color); margin-bottom: 1rem;">
+            {{ formset.non_form_errors }}
+        </div>
+        {% endif %}
+
+        <div id="formset-container" class="formset-container">
+            {% for exercise_form in formset %}
+            <div class="formset-row">
+                <div class="form-row">
+                    <label class="form-label">Назва вправи</label>
+                    {{ exercise_form.name }}
+                    {% if exercise_form.name.errors %}
+                    <div style="color: var(--danger-color); font-size: 0.8rem;">
+                        {{ exercise_form.name.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <div class="form-row" style="flex: 1;">
+                        <label class="form-label">Підходи</label>
+                        {{ exercise_form.sets }}
+                        {% if exercise_form.sets.errors %}
+                        <div style="color: var(--danger-color); font-size: 0.8rem;">
+                            {{ exercise_form.sets.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row" style="flex: 1;">
+                        <label class="form-label">Повторення</label>
+                        {{ exercise_form.repetitions }}
+                        {% if exercise_form.repetitions.errors %}
+                        <div style="color: var(--danger-color); font-size: 0.8rem;">
+                            {{ exercise_form.repetitions.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if formset.can_delete %}
+                <div class="form-row delete-row"
+                     style="margin-top: 0.5rem; display: flex; align-items: center; justify-content: flex-end;">
+                    <div style="display: none;">{{ exercise_form.DELETE }}
+                    </div>
+                    <button type="button"
+                            class="btn btn-danger remove-form-btn"
+                            style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                        Видалити вправу ×
+                    </button>
+                </div>
+                {% endif %}
+                {{ exercise_form.id }}
+            </div>
+            {% if not forloop.last %}
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <div id="empty-form" style="display: none;">
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
+            <div class="formset-row">
+                <div class="form-row">
+                    <label class="form-label">Назва вправи</label>
+                    {{ formset.empty_form.name }}
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <div class="form-row" style="flex: 1;">
+                        <label class="form-label">Підходи</label>
+                        {{ formset.empty_form.sets }}
+                    </div>
+                    <div class="form-row" style="flex: 1;">
+                        <label class="form-label">Повторення</label>
+                        {{ formset.empty_form.repetitions }}
+                    </div>
+                </div>
+                {% if formset.can_delete %}
+                <div class="form-row delete-row"
+                     style="margin-top: 0.5rem; display: flex; align-items: center; justify-content: flex-end;">
+                    <div style="display: none;">{{ formset.empty_form.DELETE
+                        }}
+                    </div>
+                    <button type="button"
+                            class="btn btn-danger remove-form-btn"
+                            style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                        Видалити вправу ×
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <button type="button" id="add-form" class="btn btn-secondary">+
+                Додати вправу
+            </button>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-success">Зберегти вправи</button>
+        <a class="btn btn-secondary"
+           href="{% url 'workout_detail' workout.pk %}">Пропустити / Назад</a>
+    </div>
+</form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const addBtn = document.getElementById('add-form');
+        const totalForms = document.getElementById('id_exercise_set-TOTAL_FORMS');
+        const container = document.getElementById('formset-container');
+        const emptyForm = document.getElementById('empty-form').innerHTML;
+
+        // Функція для перемикання required залежно від чекбокса видалення
+        function toggleRequiredOnDelete(checkbox) {
+            const row = checkbox.closest('.formset-row');
+            const inputs = row.querySelectorAll('input[name$="-name"]');
+            inputs.forEach(input => {
+                if (checkbox.checked) {
+                    input.removeAttribute('required');
+                } else {
+                    input.setAttribute('required', 'required');
+                }
+            });
+        }
+
+        // Додаємо обробник для видалення
+        container.addEventListener('click', function (e) {
+            if (e.target && e.target.classList.contains('remove-form-btn')) {
+                const row = e.target.closest('.formset-row');
+                const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
+                const idInput = row.querySelector('input[name$="-id"]');
+
+                if (idInput && idInput.value) {
+                    // Це існуюча вправа в БД - позначаємо на видалення і ховаємо
+                    if (deleteCheckbox) {
+                        deleteCheckbox.checked = true;
+                        toggleRequiredOnDelete(deleteCheckbox);
+                        row.style.display = 'none';
+                        // Ховаємо також HR, якщо він є перед рядком
+                        const hr = row.previousElementSibling;
+                        if (hr && hr.tagName === 'HR') {
+                            hr.style.display = 'none';
+                        }
+                    }
+                } else {
+                    // Це нова вправа, якої ще немає в БД - просто видаляємо її з DOM
+                    const hr = row.previousElementSibling;
+                    if (hr && hr.tagName === 'HR') {
+                        hr.remove();
+                    }
+                    row.remove();
+
+                    // Оновлюємо TOTAL_FORMS
+                    const forms = container.querySelectorAll('.formset-row');
+                    totalForms.value = forms.length;
+
+                    // Перераховуємо індекси для всіх полів, що залишилися (важливо для Django)
+                    reindexForms();
+                }
+            }
+        });
+
+        function reindexForms() {
+            const rows = container.querySelectorAll('.formset-row');
+            rows.forEach((row, index) => {
+                const inputs = row.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    const name = input.getAttribute('name');
+                    if (name) {
+                        input.setAttribute('name', name.replace(/exercise_set-\d+-/, `exercise_set-${index}-`));
+                    }
+                    const id = input.getAttribute('id');
+                    if (id) {
+                        input.setAttribute('id', id.replace(/id_exercise_set-\d+-/, `id_exercise_set-${index}-`));
+                    }
+                });
+            });
+            totalForms.value = rows.length;
+        }
+
+        // Додаємо обробник для існуючих чекбоксів
+        container.addEventListener('change', function (e) {
+            if (e.target && e.target.type === 'checkbox' && e.target.name.endsWith('-DELETE')) {
+                toggleRequiredOnDelete(e.target);
+            }
+        });
+
+        // Початкова ініціалізація: додаємо required до всіх назв вправ (крім тих, що помічені на видалення)
+        const nameInputs = container.querySelectorAll('input[name$="-name"]');
+        nameInputs.forEach(input => {
+            const row = input.closest('.formset-row');
+            const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
+            if (!deleteCheckbox || !deleteCheckbox.checked) {
+                input.setAttribute('required', 'required');
+            }
+        });
+
+        addBtn.addEventListener('click', function () {
+            const formNum = parseInt(totalForms.value);
+            const newFormHTML = emptyForm.replace(/__prefix__/g, formNum);
+
+            container.insertAdjacentHTML('beforeend', newFormHTML);
+
+            // Додаємо required до нової вправи
+            const newRow = container.lastElementChild;
+            const newNameInput = newRow.querySelector('input[name$="-name"]');
+            if (newNameInput) {
+                newNameInput.setAttribute('required', 'required');
+            }
+
+            totalForms.value = formNum + 1;
+        });
+    });
+</script>
+{% endblock %}
